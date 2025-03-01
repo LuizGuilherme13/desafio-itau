@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -22,6 +21,7 @@ func NewServer(addr string) *Server {
 func (s *Server) Start() error {
 	http.HandleFunc("POST /transacao", s.HandleNewTransaction)
 	http.HandleFunc("DELETE /transacao", s.HandleDeleteTransactions)
+	http.HandleFunc("GET /estatistica", s.HandleGetStatistic)
 
 	log.Println("Server running on port", s.Addr)
 	return http.ListenAndServe(s.Addr, nil)
@@ -33,7 +33,6 @@ func (s *Server) HandleNewTransaction(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(&t)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-
 		return
 	}
 
@@ -53,7 +52,6 @@ func (s *Server) HandleNewTransaction(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.Store.Add(t)
-	fmt.Println(s.Store.Transactions)
 	w.WriteHeader(http.StatusCreated)
 }
 
@@ -61,4 +59,40 @@ func (s *Server) HandleDeleteTransactions(w http.ResponseWriter, r *http.Request
 	s.Store.Transactions = []models.Transaction{}
 
 	w.WriteHeader(http.StatusOK)
+}
+
+func (s *Server) HandleGetStatistic(w http.ResponseWriter, r *http.Request) {
+	now := time.Now()
+
+	statistic := models.Statistic{}
+
+	for i, t := range s.Store.Transactions {
+		diff := now.Sub(t.DateTime)
+
+		if diff.Seconds() <= 60 {
+			statistic.Count++
+			statistic.Sum += t.Value
+			statistic.Avg = statistic.Sum / float64(statistic.Count)
+
+			if i == 0 {
+				statistic.Min = t.Value
+				statistic.Max = t.Value
+			}
+
+			if t.Value < statistic.Min {
+				statistic.Min = t.Value
+			}
+
+			if t.Value > statistic.Max {
+				statistic.Max = t.Value
+			}
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(statistic); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 }
