@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"time"
 
+	"slices"
+
 	"github.com/LuizGuilherme13/desafio-itau/models"
 )
 
@@ -65,8 +67,9 @@ func (s *Server) HandleGetStatistic(w http.ResponseWriter, r *http.Request) {
 	now := time.Now()
 
 	statistic := models.Statistic{}
+	values := []float64{}
 
-	for i, t := range s.Store.Transactions {
+	for _, t := range s.Store.Transactions {
 		diff := now.Sub(t.DateTime)
 
 		if diff.Seconds() <= 60 {
@@ -74,20 +77,14 @@ func (s *Server) HandleGetStatistic(w http.ResponseWriter, r *http.Request) {
 			statistic.Sum += t.Value
 			statistic.Avg = statistic.Sum / float64(statistic.Count)
 
-			if i == 0 {
-				statistic.Min = t.Value
-				statistic.Max = t.Value
-			}
-
-			if t.Value < statistic.Min {
-				statistic.Min = t.Value
-			}
-
-			if t.Value > statistic.Max {
-				statistic.Max = t.Value
-			}
+			values = append(values, t.Value)
 		}
 	}
+
+	slices.Sort(values)
+
+	statistic.Min = values[0]
+	statistic.Max = values[len(values)-1]
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
