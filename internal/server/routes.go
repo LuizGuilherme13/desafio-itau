@@ -70,27 +70,30 @@ func (s *Server) HandleDeleteTransactions(w http.ResponseWriter, r *http.Request
 }
 
 func (s *Server) HandleGetStatistic(w http.ResponseWriter, r *http.Request) {
-	now := time.Now()
 
 	statistic := models.Statistic{}
-	values := []float64{}
 
-	for _, t := range s.Store.Transactions {
-		diff := now.Sub(t.DateTime)
+	if len(s.Store.Transactions) > 0 {
+		now := time.Now()
+		values := []float64{}
 
-		if diff.Seconds() <= 60 {
-			statistic.Count++
-			statistic.Sum += t.Value
-			statistic.Avg = statistic.Sum / float64(statistic.Count)
+		for _, t := range s.Store.Transactions {
+			diff := now.Sub(t.DateTime)
 
-			values = append(values, t.Value)
+			if diff.Seconds() <= 60 {
+				statistic.Count++
+				statistic.Sum += t.Value
+				statistic.Avg = statistic.Sum / float64(statistic.Count)
+
+				values = append(values, t.Value)
+			}
 		}
+
+		slices.Sort(values)
+
+		statistic.Min = values[0]
+		statistic.Max = values[len(values)-1]
 	}
-
-	slices.Sort(values)
-
-	statistic.Min = values[0]
-	statistic.Max = values[len(values)-1]
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
