@@ -1,32 +1,34 @@
-package api
+package server
 
 import (
 	"encoding/json"
-	"log"
+	"errors"
 	"net/http"
+	"slices"
 	"time"
 
-	"slices"
-
-	"github.com/LuizGuilherme13/desafio-itau/models"
+	"github.com/LuizGuilherme13/desafio-itau/internal/models"
+	"github.com/LuizGuilherme13/desafio-itau/internal/utils/clog"
 )
 
-type Server struct {
-	Addr  string
-	Store models.Storage
+func (s *Server) MountRoutes() http.Handler {
+	mux := http.NewServeMux()
+
+	mux.HandleFunc("POST /transacao", s.HandleNewTransaction)
+	mux.HandleFunc("DELETE /transacao", s.HandleDeleteTransactions)
+	mux.HandleFunc("GET /estatistica", s.HandleGetStatistic)
+
+	return logMiddleware(mux)
 }
 
-func NewServer(addr string) *Server {
-	return &Server{Addr: addr, Store: models.Storage{}}
-}
+func logMiddleware(f http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
-func (s *Server) Start() error {
-	http.HandleFunc("POST /transacao", s.HandleNewTransaction)
-	http.HandleFunc("DELETE /transacao", s.HandleDeleteTransactions)
-	http.HandleFunc("GET /estatistica", s.HandleGetStatistic)
+		clog.Info(r.Method, r.URL.Path)
 
-	log.Println("Server running on port", s.Addr)
-	return http.ListenAndServe(s.Addr, nil)
+		f.ServeHTTP(w, r)
+
+	})
 }
 
 func (s *Server) HandleNewTransaction(w http.ResponseWriter, r *http.Request) {
@@ -35,21 +37,25 @@ func (s *Server) HandleNewTransaction(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(&t)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
+		clog.Error("(HandleNewTransaction)", errors.New("invalid json"))
 		return
 	}
 
 	if t == (models.Transaction{}) {
 		w.WriteHeader(http.StatusUnprocessableEntity)
+		clog.Error("(HandleNewTransaction)", errors.New("empty body"))
 		return
 	}
 
 	if t.DateTime.After(time.Now()) {
 		w.WriteHeader(http.StatusUnprocessableEntity)
+		clog.Error("(HandleNewTransaction)", errors.New("dateTime cannot be in the future"))
 		return
 	}
 
 	if t.Value < 0 {
 		w.WriteHeader(http.StatusUnprocessableEntity)
+		clog.Error("(HandleNewTransaction)", errors.New("value cannot be less than 0"))
 		return
 	}
 

@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/LuizGuilherme13/desafio-itau/api"
+	"github.com/LuizGuilherme13/desafio-itau/internal/server"
 )
 
 func TestHandleNewTransaction(t *testing.T) {
@@ -30,7 +30,7 @@ func TestHandleNewTransaction(t *testing.T) {
 		r := httptest.NewRequest(http.MethodPost, "/transacao", bytes.NewBufferString(tt.body))
 		w := httptest.NewRecorder()
 
-		server := api.NewServer(":8080")
+		server := server.New(":8080")
 
 		server.HandleNewTransaction(w, r)
 

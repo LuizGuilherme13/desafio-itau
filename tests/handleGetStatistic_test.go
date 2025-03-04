@@ -9,14 +9,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/LuizGuilherme13/desafio-itau/api"
-	"github.com/LuizGuilherme13/desafio-itau/models"
+	"github.com/LuizGuilherme13/desafio-itau/internal/models"
+	"github.com/LuizGuilherme13/desafio-itau/internal/server"
 )
 
 func TestHandleGetStatistic(t *testing.T) {
 	expectedStatistic := models.Statistic{}
 
-	server := api.NewServer(":8080")
+	server := server.New(":8080")
 	server.Store.Transactions = []models.Transaction{
 		{Value: 100.00, DateTime: time.Now().Add(-1 * time.Minute)},
 		{Value: 99.11, DateTime: time.Now().Add(-1 * time.Minute)},

@@ -6,12 +6,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/LuizGuilherme13/desafio-itau/api"
-	"github.com/LuizGuilherme13/desafio-itau/models"
+	"github.com/LuizGuilherme13/desafio-itau/internal/models"
+	"github.com/LuizGuilherme13/desafio-itau/internal/server"
 )
 
 func TestHandleDeleteTransaction(t *testing.T) {
-	server := api.NewServer(":8080")
+	server := server.New(":8080")
 	server.Store = models.Storage{
 		Transactions: []models.Transaction{
 			{Value: 100.5, DateTime: time.Now()},
